@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Human Detection with TensorFlow.js</title>
+    <style>
+      #video {
+        position: absolute;
+        top: 0;
+        left: 0;
+      }
+      #canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+      }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.7.0/dist/tf.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"> </script>
+  </head>
+  <body>
+    <video id="video" width="640" height="480" autoplay></video>
+    <canvas id="canvas" width="640" height="480"></canvas>
+    <script>
+      // Load the COCO-SSD model
+      cocoSsd.load().then(model => {
+        // Get video element
+        const videoElement = document.getElementById('video');
+
+        // Get canvas element for drawing bounding boxes
+        const canvasElement = document.getElementById('canvas');
+        const canvasContext = canvasElement.getContext('2d');
+
+        // Start video stream
+        navigator.mediaDevices.getUserMedia({ video: true })
+          .then(stream => {
+            videoElement.srcObject = stream;
+            videoElement.addEventListener('loadeddata', () => {
+              // Detect objects in each video frame
+              setInterval(() => {
+                detectHuman(model, videoElement, canvasContext);
+              }, 1000); // Adjust the interval as needed
+            });
+          })
+          .catch(err => {
+            console.error('Error accessing webcam:', err);
+          });
+      });
+
+      // Function to detect humans in the video frame
+      async function detectHuman(model, video, canvasContext) {
+        // Clear canvas
+        canvasContext.clearRect(0, 0, canvasContext.canvas.width, canvasContext.canvas.height);
+
+        // Detect objects in the video frame
+        const predictions = await model.detect(video);
+
+        // Check if any human is present
+        const hasHuman = predictions.some(prediction => prediction.class === 'person');
+        const humans = predictions.filter(prediction => prediction.class === 'person');
+
+        // // Draw bounding boxes around detected objects
+        // predictions.forEach(prediction => {
+        //   const [x, y, width, height] = prediction.bbox;
+        //   canvasContext.beginPath();
+        //   canvasContext.lineWidth = '2';
+        //   canvasContext.strokeStyle = 'red';
+        //   canvasContext.fillStyle = 'red';
+        //   canvasContext.rect(x, y, width, height);
+        //   canvasContext.stroke();
+        //   canvasContext.fillText(prediction.class, x, y > 10 ? y - 5 : 10);
+        // });
+        humans.forEach(human => {
+          const [x, y, width, height] = human.bbox;
+          canvasContext.beginPath();
+          canvasContext.lineWidth = '2';
+          canvasContext.strokeStyle = 'red';
+          canvasContext.rect(x, y, width, height);
+          canvasContext.stroke();
+        });
+        // Display presence of humans
+        if (hasHuman) {
+          console.log('Human present!');
+          // Perform any desired actions when a human is detected
+        } else {
+          console.log('No human detected');
+          // Perform any desired actions when no human is detected
+        }
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,92 @@
+<html>
+  <head>
+    <script>
+// Check if the browser supports getUserMedia API
+if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+  // Request permission to access the webcam
+  navigator.mediaDevices.getUserMedia({ video: true })
+    .then(function(stream) {
+      // Create a video element to display the webcam feed
+      var video = document.createElement('video');
+      video.srcObject = stream;
+      video.autoplay = true;
+
+      // Create a canvas element to compare frames
+      var canvas = document.createElement('canvas');
+      var ctx = canvas.getContext('2d');
+
+      // Variables to store the previous frame
+      var prevFrame = null;
+      var prevData = null;
+
+      // Event listener to handle metadata loaded event
+      video.addEventListener('loadedmetadata', function() {
+        // Set the canvas dimensions to match the video
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        // Start comparing frames
+        compareFrames();
+      });
+
+      // Function to compare frames
+      function compareFrames() {
+        // Draw the current frame on the canvas
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        // Get the pixel data from the canvas
+        var currentData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+
+        // Compare frames if there is a previous frame
+        if (prevData) {
+          var totalPixels = currentData.length / 4; // Divide by 4 to account for RGBA values
+          var differentPixels = 0;
+
+          // Compare each pixel in the frame
+          for (var i = 0; i < currentData.length; i += 4) {
+            // Compare RGB values for each pixel
+            if (
+              currentData[i] !== prevData[i] ||
+              currentData[i + 1] !== prevData[i + 1] ||
+              currentData[i + 2] !== prevData[i + 2]
+            ) {
+              differentPixels++;
+            }
+          }
+
+          // Calculate the percentage of different pixels
+          var diffPercentage = (differentPixels / (totalPixels * 3)) * 100; // Multiply by 3 as each pixel has 3 RGB values
+
+          // If the difference percentage exceeds the threshold, send a notification
+          if (diffPercentage > 30) {
+            // Check if the browser supports notifications
+            console.log('Significant Video Change Detected ' + diffPercentage)
+
+          }
+        }
+
+        // Save the current frame data for comparison
+        prevData = currentData;
+
+        // Schedule the next frame comparison
+        requestAnimationFrame(compareFrames);
+      }
+
+      // Append the video element to the document body
+      document.body.appendChild(video);
+    })
+    .catch(function(error) {
+      console.error('Error accessing the webcam:', error);
+    });
+} else {
+  console.error('getUserMedia is not supported in this browser');
+}
+
+
+
+
+
+
+</script>
+</head>
+</html>
